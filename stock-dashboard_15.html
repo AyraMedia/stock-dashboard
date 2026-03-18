@@ -1,0 +1,2284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>VIMA DILIP - Live Stock Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .dashboard {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            color: #1e3c72;
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .header .subtitle {
+            color: #718096;
+            font-size: 14px;
+        }
+
+        .header-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px solid #e2e8f0;
+        }
+
+        .live-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #059669;
+            font-weight: 600;
+        }
+
+        .pulse {
+            width: 12px;
+            height: 12px;
+            background: #059669;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        .date-info {
+            font-size: 12px;
+            color: #4a5568;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .metric-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .metric-label {
+            font-size: 13px;
+            color: #718096;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .metric-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #2d3748;
+        }
+
+        .metric-change {
+            font-size: 12px;
+            margin-top: 8px;
+        }
+
+        .metric-change.positive {
+            color: #059669;
+        }
+
+        .metric-change.negative {
+            color: #dc2626;
+        }
+
+        .charts-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        }
+
+        .chart-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 15px;
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .table-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        }
+
+        .compact-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .compact-table th {
+            background: #f7fafc;
+            padding: 10px;
+            text-align: left;
+            font-weight: 600;
+            color: #2d3748;
+            border-bottom: 2px solid #e2e8f0;
+            font-size: 12px;
+        }
+
+        .compact-table td {
+            padding: 10px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 13px;
+        }
+
+        .compact-table tr:hover {
+            background: #f7fafc;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-hold {
+            background: #fed7aa;
+            color: #9a3412;
+        }
+
+        .stock-bar {
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .stock-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.5s ease;
+        }
+
+        @media (max-width: 1200px) {
+            .charts-row {
+                grid-template-columns: 1fr;
+            }
+            .data-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .header .subtitle {
+                font-size: 12px;
+            }
+
+            .header-info {
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
+            }
+
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .metric-card {
+                padding: 15px;
+            }
+
+            .metric-value {
+                font-size: 24px;
+            }
+
+            .metric-label {
+                font-size: 11px;
+            }
+
+            .metric-change {
+                font-size: 10px;
+            }
+
+            /* Management Buttons - Stack on mobile */
+            .dashboard > div[style*="display: flex; gap: 15px"] {
+                flex-direction: column !important;
+                gap: 10px !important;
+            }
+
+            .refresh-btn {
+                width: 100% !important;
+                flex: none !important;
+                padding: 12px 20px;
+                font-size: 14px;
+            }
+
+            .chart-card {
+                padding: 15px;
+            }
+
+            .chart-title {
+                font-size: 14px;
+            }
+
+            .table-card {
+                padding: 15px;
+                overflow-x: auto;
+            }
+
+            .compact-table {
+                font-size: 11px;
+            }
+
+            .compact-table th,
+            .compact-table td {
+                padding: 8px 6px;
+            }
+
+            .status-badge {
+                font-size: 9px;
+                padding: 3px 8px;
+            }
+
+            /* Modal adjustments */
+            .modal-content {
+                width: 95%;
+                padding: 20px;
+                max-height: 85vh;
+            }
+
+            .modal-title {
+                font-size: 16px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .form-input,
+            .form-select {
+                font-size: 16px; /* Prevents zoom on iOS */
+            }
+
+            .submit-btn {
+                padding: 12px;
+                font-size: 14px;
+            }
+
+            /* Trail items */
+            .trail-item {
+                padding: 10px;
+                font-size: 12px;
+            }
+
+            .trail-date {
+                font-size: 10px;
+            }
+
+            .trail-action {
+                font-size: 12px;
+            }
+
+            .trail-qty {
+                font-size: 13px;
+            }
+
+            /* Document upload zone */
+            #dropZone {
+                padding: 30px 20px;
+            }
+
+            #dropZone > div:first-child {
+                font-size: 36px;
+            }
+
+            /* Hide utilization column on mobile for better readability */
+            .compact-table td:nth-child(5),
+            .compact-table th:nth-child(5) {
+                display: none;
+            }
+        }
+
+        /* Tablet specific (768px - 1024px) */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .charts-row {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .modal-content {
+                width: 85%;
+                max-width: 600px;
+            }
+        }
+
+        /* Touch-friendly improvements */
+        @media (hover: none) and (pointer: coarse) {
+            /* Larger touch targets */
+            .refresh-btn,
+            .submit-btn,
+            .close-btn {
+                min-height: 44px;
+                min-width: 44px;
+            }
+
+            .manager-clickable {
+                padding: 8px 4px;
+                display: inline-block;
+            }
+
+            /* Better spacing for touch */
+            .trail-item {
+                margin-bottom: 12px;
+            }
+
+            input[type="checkbox"] {
+                width: 20px;
+                height: 20px;
+            }
+
+            /* Prevent text selection on buttons */
+            button {
+                -webkit-tap-highlight-color: transparent;
+                user-select: none;
+            }
+        }
+
+        /* Small mobile phones (< 375px) */
+        @media (max-width: 374px) {
+            .header h1 {
+                font-size: 18px;
+            }
+
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .metric-value {
+                font-size: 20px;
+            }
+
+            .modal-content {
+                padding: 15px;
+            }
+
+            .compact-table {
+                font-size: 10px;
+            }
+
+            .compact-table th,
+            .compact-table td {
+                padding: 6px 4px;
+            }
+        }
+
+        /* Landscape mobile optimization */
+        @media (max-height: 500px) and (orientation: landscape) {
+            .modal-content {
+                max-height: 95vh;
+                padding: 15px;
+            }
+
+            .header {
+                padding: 15px;
+                margin-bottom: 15px;
+            }
+
+            .metrics-grid {
+                margin-bottom: 15px;
+            }
+
+            .metric-card {
+                padding: 12px;
+            }
+        }
+
+        .refresh-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .refresh-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 28px;
+            color: #718096;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            line-height: 1;
+        }
+
+        .close-btn:hover {
+            color: #2d3748;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 8px;
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .movement-trail {
+            margin-top: 15px;
+        }
+
+        .trail-item {
+            padding: 12px;
+            background: #f7fafc;
+            border-left: 3px solid #667eea;
+            margin-bottom: 10px;
+            border-radius: 6px;
+        }
+
+        .trail-date {
+            font-size: 11px;
+            color: #718096;
+            margin-bottom: 4px;
+        }
+
+        .trail-action {
+            font-size: 13px;
+            color: #2d3748;
+            font-weight: 500;
+        }
+
+        .trail-qty {
+            font-size: 14px;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .manager-clickable {
+            cursor: pointer;
+            color: #667eea;
+            font-weight: 600;
+            text-decoration: underline;
+        }
+
+        .manager-clickable:hover {
+            color: #764ba2;
+        }
+
+        .venue-card {
+            padding: 12px;
+            background: #f7fafc;
+            border-left: 3px solid #667eea;
+            margin-bottom: 10px;
+            border-radius: 6px;
+        }
+
+        .badge-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+    </style>
+    
+    <!-- Debug Panel Style -->
+    <style>
+        #debugPanel {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #1f2937;
+            color: #10b981;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 11px;
+            max-width: 300px;
+            max-height: 200px;
+            overflow-y: auto;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            z-index: 10000;
+            display: none;
+        }
+        #debugPanel.show {
+            display: block;
+        }
+        #debugPanel .log {
+            margin: 3px 0;
+            padding: 2px 0;
+            border-bottom: 1px solid #374151;
+        }
+        #debugPanel .error {
+            color: #ef4444;
+        }
+        #debugPanel .success {
+            color: #10b981;
+        }
+        #debugToggle {
+            position: fixed;
+            bottom: 20px;
+            right: 340px;
+            background: #1f2937;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            z-index: 10001;
+        }
+    </style>
+</head>
+<body>
+    <!-- Debug Panel -->
+    <button id="debugToggle" onclick="document.getElementById('debugPanel').classList.toggle('show')">🐛 Debug Log</button>
+    <div id="debugPanel">
+        <div style="font-weight: bold; margin-bottom: 8px; color: #60a5fa;">Debug Console</div>
+        <div id="debugLog"></div>
+    </div>
+
+    <div class="dashboard">
+        <!-- Header -->
+        <div class="header">
+            <h1>📊 VIMA DILIP - Live Stock Dashboard</h1>
+            <div class="subtitle">Real-time inventory tracking and analytics</div>
+            <div class="header-info">
+                <div class="live-indicator">
+                    <div class="pulse"></div>
+                    <span>Live Data</span>
+                </div>
+                <div class="date-info">
+                    <strong>Reset:</strong> 22-02-2026 | <strong>Updated:</strong> <span id="lastUpdate">01-03-2026</span>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="refresh-btn" onclick="refreshData()">⟳ Refresh</button>
+                    <button class="refresh-btn" onclick="recalculateAllStocks()" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);">🔢 Recalculate</button>
+                    <button class="refresh-btn" onclick="clearBadEntries()" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">🧹 Clean Data</button>
+                    <button class="refresh-btn" onclick="completeReset()" style="background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);">🔄 Complete Reset</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Metrics -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-label">Total Live Stock</div>
+                <div class="metric-value" id="totalStock">0</div>
+                <div class="metric-change negative" id="stockChange">▼ 255 pcs sold</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Active Positions</div>
+                <div class="metric-value" id="activeCount">0</div>
+                <div class="metric-change">Across multiple locations</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Upcoming Shows</div>
+                <div class="metric-value">12+</div>
+                <div class="metric-change">March lineup</div>
+            </div>
+            <div class="metric-card" style="cursor: pointer;" onclick="toggleEntryForm()">
+                <div class="metric-label">Quick Actions</div>
+                <div class="metric-value" style="font-size: 24px;">+ Add</div>
+                <div class="metric-change positive">Log new movement</div>
+            </div>
+        </div>
+
+        <!-- Management Buttons Row -->
+        <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+            <button class="refresh-btn" onclick="toggleManagerForm()" style="flex: 1;">
+                👤 Add Sales Manager
+            </button>
+            <button class="refresh-btn" onclick="toggleVenueForm()" style="flex: 1;">
+                📍 Add Venue
+            </button>
+            <button class="refresh-btn" onclick="toggleDocumentUpload()" style="flex: 1;">
+                📎 Upload / Scan Documents
+            </button>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="charts-row">
+            <div class="chart-card">
+                <div class="chart-title">Stock Distribution by Manager</div>
+                <canvas id="distributionChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">Status Overview</div>
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Data Tables -->
+        <div class="data-grid">
+            <div class="table-card">
+                <div class="chart-title">Top 3 Stock Positions</div>
+                <table class="compact-table">
+                    <thead>
+                        <tr>
+                            <th>Manager</th>
+                            <th>Location</th>
+                            <th>Stock</th>
+                        </tr>
+                    </thead>
+                    <tbody id="topStockTable">
+                        <!-- Dynamic content -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="table-card">
+                <div class="chart-title">Recent Activity</div>
+                <table class="compact-table">
+                    <thead>
+                        <tr>
+                            <th>Event</th>
+                            <th>Manager</th>
+                            <th>Impact</th>
+                        </tr>
+                    </thead>
+                    <tbody id="activityTable">
+                        <!-- Dynamic content -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- All Positions -->
+        <div class="table-card">
+            <div class="chart-title">All Stock Positions (Live)</div>
+            <table class="compact-table">
+                <thead>
+                    <tr>
+                        <th>Sales Manager</th>
+                        <th>Event / Location</th>
+                        <th>Stock</th>
+                        <th>Status</th>
+                        <th>Utilization</th>
+                    </tr>
+                </thead>
+                <tbody id="allPositionsTable">
+                    <!-- Dynamic content -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Entry Form Modal -->
+    <div id="entryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Log Stock Movement</div>
+                <button class="close-btn" onclick="toggleEntryForm()">&times;</button>
+            </div>
+            <form onsubmit="addMovement(event)">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">From Location</label>
+                        <input type="text" class="form-input" id="fromLocation" list="citiesList" placeholder="e.g., Bangalore" required>
+                        <datalist id="citiesList"></datalist>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">To Location</label>
+                        <input type="text" class="form-input" id="toLocation" list="citiesList2" placeholder="e.g., Hyderabad" required>
+                        <datalist id="citiesList2"></datalist>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Sales Manager</label>
+                        <select class="form-select" id="managerName" required>
+                            <option value="">Select Manager</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Pieces</label>
+                        <input type="number" class="form-input" id="pieces" placeholder="0" min="1" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Movement Type</label>
+                    <select class="form-select" id="movementType" required>
+                        <option value="">Select Type</option>
+                        <option value="transfer">Transfer</option>
+                        <option value="sale">Sale</option>
+                        <option value="return">Return</option>
+                        <option value="addition">Addition</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Event / Purpose</label>
+                    <input type="text" class="form-input" id="eventName" list="eventsList" placeholder="e.g., Akriti Taj Deccan">
+                    <datalist id="eventsList"></datalist>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Date</label>
+                    <input type="date" class="form-input" id="movementDate" required>
+                </div>
+                <button type="submit" class="submit-btn">Log Movement</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Movement Breakdown Modal -->
+    <div id="breakdownModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="breakdownTitle">Movement Trail</div>
+                <button class="close-btn" onclick="closeBreakdown()">&times;</button>
+            </div>
+            <div id="breakdownContent">
+                <!-- Dynamic content -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Sales Manager Modal -->
+    <div id="managerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Add Sales Manager</div>
+                <button class="close-btn" onclick="toggleManagerForm()">&times;</button>
+            </div>
+            <form onsubmit="addManager(event)">
+                <div class="form-group">
+                    <label class="form-label">Manager Name</label>
+                    <input type="text" class="form-input" id="newManagerName" placeholder="e.g., Priya" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Contact Number (Optional)</label>
+                    <input type="tel" class="form-input" id="managerPhone" placeholder="e.g., +91 98765 43210">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email (Optional)</label>
+                    <input type="email" class="form-input" id="managerEmail" placeholder="e.g., priya@example.com">
+                </div>
+                <button type="submit" class="submit-btn">Add Manager</button>
+            </form>
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #e2e8f0;">
+                <div style="font-size: 13px; font-weight: 600; color: #4a5568; margin-bottom: 10px;">Current Managers:</div>
+                <div id="managerList" style="display: flex; flex-wrap: wrap; gap: 8px;">
+                    <!-- Dynamic manager badges -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Venue Modal -->
+    <div id="venueModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Add Venue</div>
+                <button class="close-btn" onclick="toggleVenueForm()">&times;</button>
+            </div>
+            <form onsubmit="addVenue(event)">
+                <div class="form-group">
+                    <label class="form-label">City</label>
+                    <input type="text" class="form-input" id="venueCity" placeholder="e.g., Hyderabad" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Show Name</label>
+                    <input type="text" class="form-input" id="venueName" placeholder="e.g., Akriti" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Venue</label>
+                    <input type="text" class="form-input" id="venuePlace" placeholder="e.g., Taj Krishna" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" class="form-input" id="venueStartDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">End Date</label>
+                        <input type="date" class="form-input" id="venueEndDate" required>
+                    </div>
+                </div>
+                <button type="submit" class="submit-btn">Add Venue</button>
+            </form>
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #e2e8f0;">
+                <div style="font-size: 13px; font-weight: 600; color: #4a5568; margin-bottom: 10px;">Registered Venues:</div>
+                <div id="venueList" style="max-height: 300px; overflow-y: auto;">
+                    <!-- Dynamic venue cards -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Document Upload/Scan Modal -->
+    <div id="documentModal" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <div class="modal-title">📎 Upload / Scan Documents</div>
+                <button class="close-btn" onclick="toggleDocumentUpload()">&times;</button>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <div style="font-size: 13px; color: #6b7280; margin-bottom: 15px;">
+                    Upload courier slips, sales reports, handwritten notes, or any stock-related documents
+                </div>
+                
+                <!-- Upload Area -->
+                <div id="dropZone" style="border: 2px dashed #cbd5e0; border-radius: 12px; padding: 40px; text-align: center; background: #f7fafc; cursor: pointer; transition: all 0.3s;">
+                    <div style="font-size: 48px; margin-bottom: 10px;">📄</div>
+                    <div style="font-size: 15px; font-weight: 600; color: #2d3748; margin-bottom: 8px;">
+                        Click to upload or drag & drop
+                    </div>
+                    <div style="font-size: 12px; color: #718096;">
+                        Supports: JPG, PNG, PDF, DOC, XLSX (Max 10MB per file)
+                    </div>
+                    <input type="file" id="fileInput" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" 
+                           style="display: none;" onchange="handleFileSelect(event)">
+                </div>
+            </div>
+
+            <!-- Document Categorization -->
+            <div class="form-row" id="docMetadata" style="display: none;">
+                <div class="form-group">
+                    <label class="form-label">Document Type</label>
+                    <select class="form-select" id="docType">
+                        <option value="">Select Type</option>
+                        <option value="courier_slip">Courier Slip</option>
+                        <option value="sales_report">Sales Report</option>
+                        <option value="stock_count">Stock Count Sheet</option>
+                        <option value="handwritten_notes">Handwritten Notes</option>
+                        <option value="invoice">Invoice</option>
+                        <option value="receipt">Receipt</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Related To</label>
+                    <select class="form-select" id="docRelatedManager">
+                        <option value="">Select Manager</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group" id="docNotesField" style="display: none;">
+                <label class="form-label">Description / Notes</label>
+                <input type="text" class="form-input" id="docNotes" placeholder="Brief description of the document">
+            </div>
+
+            <!-- Preview Area -->
+            <div id="previewArea" style="display: none; margin-top: 20px;">
+                <div style="font-size: 13px; font-weight: 600; color: #4a5568; margin-bottom: 10px;">Files to Upload:</div>
+                <div id="fileList" style="max-height: 200px; overflow-y: auto;">
+                    <!-- Dynamic file previews -->
+                </div>
+                <button onclick="uploadDocuments()" class="submit-btn" style="margin-top: 15px;">
+                    Upload Documents
+                </button>
+            </div>
+
+            <!-- Uploaded Documents List -->
+            <div style="margin-top: 25px; padding-top: 20px; border-top: 2px solid #e2e8f0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <div style="font-size: 13px; font-weight: 600; color: #4a5568;">Uploaded Documents</div>
+                    <div style="font-size: 11px; color: #718096;" id="docCount">0 documents</div>
+                </div>
+                <div id="documentsList" style="max-height: 300px; overflow-y: auto;">
+                    <!-- Dynamic document cards -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Debug Logger - Shows messages on page
+        function debugLog(message, type = 'log') {
+            const logDiv = document.getElementById('debugLog');
+            if (logDiv) {
+                const entry = document.createElement('div');
+                entry.className = `log ${type}`;
+                entry.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+                logDiv.appendChild(entry);
+                logDiv.scrollTop = logDiv.scrollHeight;
+            }
+            console.log(message); // Also log to console
+        }
+
+        // Data with localStorage persistence
+        const stockData = {
+            managers: ['Ritesh', 'Siddharth', 'Raj', 'Ambesh'],
+            venues: [
+                { city: 'Hyderabad', show: 'Akriti', venue: 'Taj Deccan', startDate: '27-02-2026', endDate: '01-03-2026' },
+                { city: 'Hyderabad', show: 'Hi-Life', venue: 'Various', startDate: '22-02-2026', endDate: '23-02-2026' },
+                { city: 'Mumbai', show: 'Pehnawa', venue: 'Thane', startDate: '28-02-2026', endDate: '01-03-2026' },
+                { city: 'Bangalore', show: 'GoSwadeshi', venue: 'Convention Center', startDate: '26-02-2026', endDate: '28-02-2026' },
+                { city: 'Chennai', show: 'Style Bazaar', venue: 'Phoenix Mall', startDate: '24-02-2026', endDate: '25-02-2026' },
+                { city: 'Vijayawada', show: 'Pink Town', venue: 'City Center', startDate: '28-02-2026', endDate: '01-03-2026' },
+                { city: 'Kolkata', show: 'Sutra/Temptations', venue: 'TBD', startDate: '16-03-2026', endDate: 'TBD' }
+            ],
+            // Autocomplete data - will grow as user enters new values
+            cities: ['Bangalore', 'Hyderabad', 'Mumbai', 'Chennai', 'Vijayawada', 'Kolkata', 'Delhi', 'Ahmedabad', 'Anantpur', 'Surat', 'Guntur', 'Bhimavaram'],
+            events: ['Hi-Life', 'Akriti', 'Pehnawa', 'GoSwadeshi', 'Style Bazaar', 'Pink Town', 'Sutra/Temptations', 'Bloom Pop-Up', 'Haute Chutney'],
+            locations: ['Taj Deccan', 'Taj Krishna', 'Thane', 'Convention Center', 'Phoenix Mall', 'City Center', 'Warehouse', 'Various'],
+            documents: [
+                { 
+                    id: 1, 
+                    name: 'Hi-Life Sales Report.jpg', 
+                    type: 'sales_report', 
+                    relatedTo: 'Ritesh', 
+                    uploadDate: '23-02-2026',
+                    notes: 'Complete sales breakdown with Razorpay receipt',
+                    size: '2.3 MB'
+                }
+            ],
+            positions: [],
+            recentActivity: []
+        };
+
+        // Recalculate stock from movements for a position
+        function recalculateStock(position) {
+            let total = 0;
+            position.movements.forEach(m => {
+                if (m.type !== 'detail' && m.qty) {
+                    total += m.qty;
+                }
+            });
+            position.stock = total;
+            return total;
+        }
+
+        // Recalculate all positions
+        function recalculateAllStocks() {
+            // Show debug log
+            const debugPanel = document.getElementById('debugPanel');
+            if (debugPanel && !debugPanel.classList.contains('show')) {
+                debugPanel.classList.add('show');
+            }
+            
+            debugLog('🔢 Recalculating all stocks from movements...', 'success');
+            debugLog(`Total positions: ${stockData.positions.length}`);
+            
+            let changesCount = 0;
+            stockData.positions.forEach((p, index) => {
+                const oldStock = p.stock;
+                debugLog(`Position ${index + 1}: ${p.manager} - ${p.location}`);
+                debugLog(`  Movements: ${p.movements.length}`);
+                
+                let total = 0;
+                p.movements.forEach(m => {
+                    if (m.type !== 'detail' && m.qty) {
+                        total += m.qty;
+                        debugLog(`  ${m.date}: ${m.action} = ${m.qty > 0 ? '+' : ''}${m.qty}`);
+                    }
+                });
+                
+                p.stock = total;
+                debugLog(`  OLD: ${oldStock} → NEW: ${total} pcs`, total !== oldStock ? 'success' : 'log');
+                
+                if (oldStock !== total) {
+                    changesCount++;
+                }
+            });
+            
+            saveData();
+            calculateMetrics();
+            populateAllPositions();
+            populateTopStock();
+            
+            debugLog(`✅ Recalculation complete! ${changesCount} positions updated.`, 'success');
+            alert(`✅ Recalculated!\n\n${changesCount} positions updated.\nCheck Debug Log for details.`);
+        }
+
+        // Load from localStorage or use defaults
+        function loadData() {
+            const saved = localStorage.getItem('vimaDilipStock');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    stockData.positions = parsed.positions || getDefaultPositions();
+                    stockData.recentActivity = parsed.recentActivity || getDefaultActivity();
+                    stockData.managers = parsed.managers || stockData.managers;
+                    stockData.cities = parsed.cities || stockData.cities;
+                    stockData.events = parsed.events || stockData.events;
+                    stockData.venues = parsed.venues || stockData.venues;
+                } catch (e) {
+                    console.error('Error loading saved data:', e);
+                    resetToDefaults();
+                }
+            } else {
+                resetToDefaults();
+            }
+        }
+
+        // Save to localStorage
+        function saveData() {
+            localStorage.setItem('vimaDilipStock', JSON.stringify({
+                positions: stockData.positions,
+                recentActivity: stockData.recentActivity,
+                managers: stockData.managers,
+                cities: stockData.cities,
+                events: stockData.events,
+                venues: stockData.venues
+            }));
+            // Visual feedback
+            console.log('✅ Data saved to localStorage');
+        }
+
+        // Reset to default positions
+        function resetToDefaults() {
+            stockData.positions = getDefaultPositions();
+            stockData.recentActivity = getDefaultActivity();
+            saveData();
+        }
+
+        // Get default positions
+        function getDefaultPositions() {
+            return [
+                { 
+                    manager: 'Ritesh', 
+                    location: 'Multiple Shows (Hyderabad, Ahmedabad, Kolkata)', 
+                    stock: 1312, 
+                    status: 'active', 
+                    maxCapacity: 2000,
+                    movements: [
+                        { date: '22-02-2026', action: 'Received from Bangalore (Hi-Life)', qty: 190, type: 'addition' },
+                        { date: '22-02-2026', action: 'Received from Anantpur (Hi-Life)', qty: 347, type: 'addition' },
+                        { date: '22-02-2026', action: 'Received from Raj Surat (Hi-Life)', qty: 400, type: 'addition' },
+                        { date: '22-23 Feb', action: 'Hi-Life Sales Hyderabad', qty: -215, type: 'sale' },
+                        { date: '23-02-2026', action: 'Return to Bangalore (pending)', qty: -37, type: 'return' },
+                        { date: '24-02-2026', action: 'Transferred to Raj (Pehnawa)', qty: -255, type: 'transfer' },
+                        { date: '25-02-2026', action: 'To Akriti Taj Deccan Hyderabad', qty: 429, type: 'transfer' },
+                        { date: '27-02-2026', action: 'From Bangalore Warehouse (Akriti)', qty: 120, type: 'addition' },
+                        { date: '20-02-2026', action: 'To Ahmedabad - HOLD (sent by mistake)', qty: 257, type: 'addition' },
+                        { date: '16-03-2026', action: 'From Bangalore to Kolkata (Sutra/Temptations)', qty: 506, type: 'addition' }
+                    ]
+                },
+                { 
+                    manager: 'Siddharth', 
+                    location: 'GoSwadeshi / Bangalore', 
+                    stock: 324, 
+                    status: 'active', 
+                    maxCapacity: 500,
+                    movements: [
+                        { date: '25-02-2026', action: 'Received from Ambesh (handover)', qty: 274, type: 'addition' },
+                        { date: '25-02-2026', action: '  - New pieces', qty: 229, type: 'detail' },
+                        { date: '25-02-2026', action: '  - Old pieces', qty: 45, type: 'detail' },
+                        { date: '26-02-2026', action: 'Additional old from warehouse', qty: 50, type: 'addition' },
+                        { date: '24-25 Feb', action: 'Ambesh sales (2 days)', qty: -6, type: 'sale' }
+                    ]
+                },
+                { 
+                    manager: 'Ambesh', 
+                    location: 'Pink Town / Vijayawada', 
+                    stock: 325, 
+                    status: 'active', 
+                    maxCapacity: 500,
+                    movements: [
+                        { date: '26-02-2026', action: 'From Bangalore Warehouse', qty: 35, type: 'addition' },
+                        { date: '27-02-2026', action: 'Received from Siddharth (Bloom Pop-Up)', qty: 290, type: 'transfer' }
+                    ]
+                },
+                { 
+                    manager: 'Siddharth', 
+                    location: 'Style Bazaar / Chennai', 
+                    stock: 264, 
+                    status: 'active', 
+                    maxCapacity: 400,
+                    movements: [
+                        { date: '23-02-2026', action: 'Received from Bangalore', qty: 264, type: 'addition' },
+                        { date: '23-02-2026', action: '  - From Ambesh (Haute Chutney)', qty: 256, type: 'detail' },
+                        { date: '23-02-2026', action: '  - From Old Office', qty: 8, type: 'detail' }
+                    ]
+                },
+                { 
+                    manager: 'Raj', 
+                    location: 'Pehnawa Thane / Mumbai', 
+                    stock: 240, 
+                    status: 'active', 
+                    maxCapacity: 400,
+                    movements: [
+                        { date: '24-02-2026', action: 'Transferred from Ritesh', qty: 255, type: 'transfer' },
+                        { date: '24-02-2026', action: 'Additional from Bangalore', qty: 25, type: 'addition' },
+                        { date: '28 Feb-1 Mar', action: 'Mumbai Thane Sales', qty: -40, type: 'sale' }
+                    ]
+                }
+            ];
+        }
+
+        // Get default activity
+        function getDefaultActivity() {
+            return [
+                { event: 'Bangalore to Kolkata', manager: 'Ritesh', impact: '+506 pcs', isNegative: false },
+                { event: 'Hi-Life Sales', manager: 'Ritesh', impact: '-215 pcs', isNegative: true },
+                { event: 'Bloom Pop-Up Sales', manager: 'Siddharth', impact: '-32 pcs', isNegative: true },
+                { event: 'Mumbai Sales', manager: 'Raj', impact: '-40 pcs', isNegative: true },
+                { event: 'GoSwadeshi Handover', manager: 'Ambesh→Siddharth', impact: '274 pcs', isNegative: false }
+            ];
+        }
+
+        // Calculate and Update Metrics
+        function calculateMetrics() {
+            const totalStock = stockData.positions.reduce((sum, p) => sum + p.stock, 0);
+            const activeCount = stockData.positions.filter(p => p.status === 'active' || p.status === 'hold').length;
+            
+            document.getElementById('totalStock').textContent = totalStock.toLocaleString();
+            document.getElementById('activeCount').textContent = activeCount;
+        }
+
+        // Populate Top Stock Table
+        function populateTopStock() {
+            const sorted = [...stockData.positions].sort((a, b) => b.stock - a.stock).slice(0, 3);
+            const tbody = document.getElementById('topStockTable');
+            tbody.innerHTML = sorted.map(p => `
+                <tr>
+                    <td><strong>${p.manager}</strong></td>
+                    <td>${p.location.split('/')[0].trim()}</td>
+                    <td><strong>${p.stock} pcs</strong></td>
+                </tr>
+            `).join('');
+        }
+
+        // Populate Activity Table
+        function populateActivity() {
+            const tbody = document.getElementById('activityTable');
+            tbody.innerHTML = stockData.recentActivity.slice(0, 5).map(a => `
+                <tr>
+                    <td>${a.event}</td>
+                    <td>${a.manager}</td>
+                    <td style="color: ${a.isNegative ? '#dc2626' : '#059669'}; font-weight: 600;">${a.impact}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Populate All Positions
+        function populateAllPositions() {
+            const tbody = document.getElementById('allPositionsTable');
+            tbody.innerHTML = stockData.positions.map((p, index) => {
+                const utilization = (p.stock / p.maxCapacity * 100).toFixed(0);
+                return `
+                <tr>
+                    <td>
+                        <span class="manager-clickable" onclick="showBreakdown(${index})">
+                            ${p.manager}
+                        </span>
+                    </td>
+                    <td>${p.location}</td>
+                    <td><strong>${p.stock} pcs</strong></td>
+                    <td><span class="status-badge status-${p.status}">${p.status.toUpperCase()}</span></td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 12px;">${utilization}%</span>
+                            <div class="stock-bar" style="flex: 1;">
+                                <div class="stock-bar-fill" style="width: ${utilization}%"></div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            `}).join('');
+        }
+
+        // Distribution Chart
+        const distributionCtx = document.getElementById('distributionChart').getContext('2d');
+        const distributionChart = new Chart(distributionCtx, {
+            type: 'bar',
+            data: {
+                labels: stockData.positions.map(p => p.manager + ' - ' + p.location.split('/')[0].trim()),
+                datasets: [{
+                    label: 'Stock (pcs)',
+                    data: stockData.positions.map(p => p.stock),
+                    backgroundColor: [
+                        'rgba(102, 126, 234, 0.8)',
+                        'rgba(254, 215, 170, 0.8)',
+                        'rgba(254, 243, 199, 0.8)',
+                        'rgba(254, 215, 170, 0.8)',
+                        'rgba(252, 165, 165, 0.8)',
+                        'rgba(219, 234, 254, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgba(102, 126, 234, 1)',
+                        'rgba(254, 215, 170, 1)',
+                        'rgba(254, 243, 199, 1)',
+                        'rgba(254, 215, 170, 1)',
+                        'rgba(252, 165, 165, 1)',
+                        'rgba(219, 234, 254, 1)'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return value + ' pcs';
+                            }
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    }
+                }
+            }
+        });
+
+        // Status Chart
+        const statusCtx = document.getElementById('statusChart').getContext('2d');
+        const activeCount = stockData.positions.filter(p => p.status === 'active').length;
+        const holdCount = stockData.positions.filter(p => p.status === 'hold').length;
+        
+        const statusChart = new Chart(statusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Active', 'Hold'],
+                datasets: [{
+                    data: [activeCount, holdCount],
+                    backgroundColor: [
+                        'rgba(5, 150, 105, 0.8)',
+                        'rgba(251, 146, 60, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgba(5, 150, 105, 1)',
+                        'rgba(251, 146, 60, 1)'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Refresh function
+        function refreshData() {
+            const now = new Date();
+            const formatted = now.toLocaleDateString('en-GB').replace(/\//g, '-');
+            document.getElementById('lastUpdate').textContent = formatted;
+            
+            // Reload from localStorage
+            loadData();
+            calculateMetrics();
+            populateTopStock();
+            populateActivity();
+            populateAllPositions();
+            
+            // Animate refresh
+            const btn = event.target;
+            btn.style.transform = 'rotate(360deg)';
+            setTimeout(() => {
+                btn.style.transform = 'rotate(0deg)';
+            }, 500);
+        }
+
+        // Confirm and reset to defaults
+        function confirmReset() {
+            if (confirm('⚠️ WARNING: This will delete ALL your current data and reset to default positions.\n\nAre you sure you want to reset?')) {
+                resetToDefaults();
+                calculateMetrics();
+                populateTopStock();
+                populateActivity();
+                populateAllPositions();
+                alert('✅ Dashboard reset to defaults. All custom positions and movements have been cleared.');
+            }
+        }
+
+        // Clear bad entries (negative stock, duplicates)
+        function clearBadEntries() {
+            debugLog('🧹 Cleaning bad entries...', 'success');
+            
+            const beforeCount = stockData.positions.length;
+            
+            // Remove positions with negative or zero stock
+            stockData.positions = stockData.positions.filter(p => p.stock > 0);
+            
+            // Remove duplicate positions (same manager + location)
+            const seen = new Map();
+            stockData.positions = stockData.positions.filter(p => {
+                const key = `${p.manager}-${p.location}`;
+                if (seen.has(key)) {
+                    debugLog(`Removing duplicate: ${p.manager} - ${p.location}`, 'error');
+                    return false;
+                }
+                seen.set(key, true);
+                return true;
+            });
+            
+            const removed = beforeCount - stockData.positions.length;
+            
+            // Clean recent activity - remove duplicates
+            const activitySeen = new Map();
+            const beforeActivity = stockData.recentActivity.length;
+            stockData.recentActivity = stockData.recentActivity.filter(a => {
+                const key = `${a.event}-${a.manager}-${a.impact}`;
+                if (activitySeen.has(key)) {
+                    return false;
+                }
+                activitySeen.set(key, true);
+                return true;
+            });
+            const removedActivity = beforeActivity - stockData.recentActivity.length;
+            
+            // Save cleaned data
+            saveData();
+            
+            // Refresh displays
+            calculateMetrics();
+            populateTopStock();
+            populateActivity();
+            populateAllPositions();
+            
+            debugLog(`✅ Removed ${removed} bad positions`, 'success');
+            debugLog(`✅ Removed ${removedActivity} duplicate activities`, 'success');
+            alert(`🧹 Cleaned!\n\nRemoved:\n- ${removed} invalid positions\n- ${removedActivity} duplicate activities\n\nRefresh to see clean data.`);
+        }
+
+        // Complete Reset - Clear everything and start fresh
+        function completeReset() {
+            if (confirm('🔄 COMPLETE RESET\n\nThis will:\n1. Clear ALL localStorage data\n2. Reset to default positions\n3. Remove all custom movements\n\nAre you absolutely sure?')) {
+                debugLog('🔄 Complete reset initiated...', 'success');
+                localStorage.clear();
+                debugLog('✅ localStorage cleared');
+                
+                // Reload page to start fresh
+                location.reload();
+            }
+        }
+
+        // Initialize - Load data first, then populate displays
+        debugLog('=== DASHBOARD INITIALIZING ===', 'success');
+        debugLog('Step 1: Loading data...');
+        loadData();
+        debugLog('Step 2: Calculating metrics...');
+        calculateMetrics();
+        debugLog('Step 3: Populating displays...');
+        populateTopStock();
+        populateActivity();
+        populateAllPositions();
+        updateManagerDropdown();
+        updateManagerList();
+        updateVenueList();
+        updateDocumentsList();
+        debugLog('✅ DASHBOARD READY!', 'success');
+        debugLog(`Positions: ${stockData.positions.length}`);
+        
+        // Show debug panel on load
+        setTimeout(() => {
+            document.getElementById('debugPanel').classList.add('show');
+        }, 1000);
+
+        // Toggle Document Upload Modal
+        function toggleDocumentUpload() {
+            const modal = document.getElementById('documentModal');
+            modal.classList.toggle('show');
+            if (modal.classList.contains('show')) {
+                updateDocumentManagerDropdown();
+                updateDocumentsList();
+            }
+        }
+
+        // Update Document Manager Dropdown
+        function updateDocumentManagerDropdown() {
+            const select = document.getElementById('docRelatedManager');
+            select.innerHTML = '<option value="">Select Manager</option>';
+            stockData.managers.forEach(manager => {
+                const option = document.createElement('option');
+                option.value = manager;
+                option.textContent = manager;
+                select.appendChild(option);
+            });
+        }
+
+        // Setup Drop Zone
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('fileInput');
+
+            if (dropZone && fileInput) {
+                dropZone.onclick = () => fileInput.click();
+
+                dropZone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    dropZone.style.borderColor = '#667eea';
+                    dropZone.style.background = '#e0e7ff';
+                });
+
+                dropZone.addEventListener('dragleave', (e) => {
+                    e.preventDefault();
+                    dropZone.style.borderColor = '#cbd5e0';
+                    dropZone.style.background = '#f7fafc';
+                });
+
+                dropZone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dropZone.style.borderColor = '#cbd5e0';
+                    dropZone.style.background = '#f7fafc';
+                    
+                    const files = e.dataTransfer.files;
+                    handleFiles(files);
+                });
+            }
+        });
+
+        // Handle File Select
+        let selectedFiles = [];
+        function handleFileSelect(event) {
+            const files = event.target.files;
+            handleFiles(files);
+        }
+
+        function handleFiles(files) {
+            selectedFiles = Array.from(files);
+            
+            if (selectedFiles.length > 0) {
+                document.getElementById('docMetadata').style.display = 'grid';
+                document.getElementById('docNotesField').style.display = 'block';
+                document.getElementById('previewArea').style.display = 'block';
+                
+                displayFileList();
+            }
+        }
+
+        function displayFileList() {
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = selectedFiles.map((file, index) => `
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: #f7fafc; border-radius: 6px; margin-bottom: 8px;">
+                    <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
+                        <div style="font-size: 24px;">
+                            ${file.type.includes('image') ? '🖼️' : 
+                              file.type.includes('pdf') ? '📄' : 
+                              file.type.includes('sheet') || file.name.endsWith('.xlsx') ? '📊' : 
+                              file.type.includes('doc') ? '📝' : '📎'}
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="font-size: 13px; font-weight: 600; color: #2d3748;">${file.name}</div>
+                            <div style="font-size: 11px; color: #718096;">${(file.size / 1024 / 1024).toFixed(2)} MB</div>
+                        </div>
+                    </div>
+                    <button onclick="removeFile(${index})" style="background: #fee2e2; color: #dc2626; border: none; padding: 6px 12px; border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: 600;">
+                        Remove
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            if (selectedFiles.length === 0) {
+                document.getElementById('docMetadata').style.display = 'none';
+                document.getElementById('docNotesField').style.display = 'none';
+                document.getElementById('previewArea').style.display = 'none';
+                document.getElementById('fileInput').value = '';
+            } else {
+                displayFileList();
+            }
+        }
+
+        // Upload Documents
+        function uploadDocuments() {
+            const docType = document.getElementById('docType').value;
+            const relatedManager = document.getElementById('docRelatedManager').value;
+            const notes = document.getElementById('docNotes').value.trim();
+
+            if (!docType) {
+                alert('Please select document type');
+                return;
+            }
+
+            const today = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
+
+            selectedFiles.forEach(file => {
+                const newDoc = {
+                    id: stockData.documents.length + 1,
+                    name: file.name,
+                    type: docType,
+                    relatedTo: relatedManager || 'General',
+                    uploadDate: today,
+                    notes: notes || '',
+                    size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
+                    file: file // Store file reference (in real app, would upload to server)
+                };
+
+                stockData.documents.push(newDoc);
+            });
+
+            updateDocumentsList();
+
+            // Reset form
+            selectedFiles = [];
+            document.getElementById('fileInput').value = '';
+            document.getElementById('docType').value = '';
+            document.getElementById('docRelatedManager').value = '';
+            document.getElementById('docNotes').value = '';
+            document.getElementById('docMetadata').style.display = 'none';
+            document.getElementById('docNotesField').style.display = 'none';
+            document.getElementById('previewArea').style.display = 'none';
+
+            alert(`${selectedFiles.length > 0 ? selectedFiles.length : stockData.documents.length} document(s) uploaded successfully!`);
+        }
+
+        // Update Documents List
+        function updateDocumentsList() {
+            const list = document.getElementById('documentsList');
+            const count = document.getElementById('docCount');
+            
+            count.textContent = `${stockData.documents.length} document${stockData.documents.length !== 1 ? 's' : ''}`;
+
+            if (stockData.documents.length === 0) {
+                list.innerHTML = '<div style="text-align: center; padding: 20px; color: #9ca3af;">No documents uploaded yet</div>';
+                return;
+            }
+
+            list.innerHTML = stockData.documents.map(doc => {
+                const typeLabel = {
+                    'courier_slip': '📦 Courier Slip',
+                    'sales_report': '📊 Sales Report',
+                    'stock_count': '📋 Stock Count',
+                    'handwritten_notes': '✍️ Handwritten',
+                    'invoice': '🧾 Invoice',
+                    'receipt': '🧾 Receipt',
+                    'other': '📎 Other'
+                }[doc.type] || '📎 Document';
+
+                return `
+                    <div style="padding: 12px; background: #f7fafc; border-left: 3px solid #667eea; margin-bottom: 10px; border-radius: 6px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 6px;">
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; color: #2d3748; font-size: 13px; margin-bottom: 4px;">
+                                    ${doc.name}
+                                </div>
+                                <div style="font-size: 11px; color: #718096;">
+                                    ${typeLabel} | 👤 ${doc.relatedTo} | 📅 ${doc.uploadDate} | 💾 ${doc.size}
+                                </div>
+                                ${doc.notes ? `<div style="font-size: 11px; color: #4b5563; margin-top: 4px; font-style: italic;">"${doc.notes}"</div>` : ''}
+                            </div>
+                            <button onclick="viewDocument(${doc.id})" style="background: #667eea; color: white; border: none; padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: 600; margin-left: 10px;">
+                                View
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // View Document
+        function viewDocument(docId) {
+            const doc = stockData.documents.find(d => d.id === docId);
+            if (doc) {
+                alert(`Viewing: ${doc.name}\n\nIn a full implementation, this would open the document viewer.\n\nDocument Details:\nType: ${doc.type}\nRelated To: ${doc.relatedTo}\nUploaded: ${doc.uploadDate}\nNotes: ${doc.notes || 'None'}`);
+                // In real implementation, would display the actual file
+            }
+        }
+
+        // Update Manager Dropdown
+        function updateManagerDropdown() {
+            const select = document.getElementById('managerName');
+            select.innerHTML = '<option value="">Select Manager</option>';
+            stockData.managers.forEach(manager => {
+                const option = document.createElement('option');
+                option.value = manager;
+                option.textContent = manager;
+                select.appendChild(option);
+            });
+        }
+
+        // Update Manager List Display
+        function updateManagerList() {
+            const list = document.getElementById('managerList');
+            list.innerHTML = stockData.managers.map(m => `
+                <span class="status-badge status-active">${m}</span>
+            `).join('');
+        }
+
+        // Update Venue List Display
+        function updateVenueList() {
+            const list = document.getElementById('venueList');
+            list.innerHTML = stockData.venues.map(v => `
+                <div style="padding: 12px; background: #f7fafc; border-left: 3px solid #667eea; margin-bottom: 10px; border-radius: 6px;">
+                    <div style="font-weight: 600; color: #2d3748; margin-bottom: 4px;">
+                        ${v.show} - ${v.venue}
+                    </div>
+                    <div style="font-size: 12px; color: #718096;">
+                        📍 ${v.city} | 📅 ${v.startDate} to ${v.endDate}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Toggle Manager Form
+        function toggleManagerForm() {
+            const modal = document.getElementById('managerModal');
+            modal.classList.toggle('show');
+            if (modal.classList.contains('show')) {
+                updateManagerList();
+            }
+        }
+
+        // Toggle Venue Form
+        function toggleVenueForm() {
+            const modal = document.getElementById('venueModal');
+            modal.classList.toggle('show');
+            if (modal.classList.contains('show')) {
+                updateVenueList();
+            }
+        }
+
+        // Add Manager
+        function addManager(event) {
+            event.preventDefault();
+            
+            const name = document.getElementById('newManagerName').value.trim();
+            const phone = document.getElementById('managerPhone').value.trim();
+            const email = document.getElementById('managerEmail').value.trim();
+
+            if (stockData.managers.includes(name)) {
+                alert('Manager already exists!');
+                return;
+            }
+
+            stockData.managers.push(name);
+            updateManagerDropdown();
+            updateManagerList();
+
+            alert(`Sales Manager "${name}" added successfully!`);
+            event.target.reset();
+        }
+
+        // Add Venue
+        function addVenue(event) {
+            event.preventDefault();
+            
+            const city = document.getElementById('venueCity').value.trim();
+            const show = document.getElementById('venueName').value.trim();
+            const venue = document.getElementById('venuePlace').value.trim();
+            const startDate = document.getElementById('venueStartDate').value;
+            const endDate = document.getElementById('venueEndDate').value;
+
+            // Format dates
+            const startFormatted = new Date(startDate).toLocaleDateString('en-GB').replace(/\//g, '-');
+            const endFormatted = new Date(endDate).toLocaleDateString('en-GB').replace(/\//g, '-');
+
+            const newVenue = {
+                city: city,
+                show: show,
+                venue: venue,
+                startDate: startFormatted,
+                endDate: endFormatted
+            };
+
+            stockData.venues.push(newVenue);
+            updateVenueList();
+
+            alert(`Venue "${show} - ${venue}" in ${city} added successfully!`);
+            event.target.reset();
+        }
+
+        // Toggle Entry Form
+        function toggleEntryForm() {
+            debugLog('📝 Opening entry form...', 'success');
+            const modal = document.getElementById('entryModal');
+            if (!modal) {
+                debugLog('❌ ERROR: Modal not found!', 'error');
+                return;
+            }
+            modal.classList.toggle('show');
+            debugLog(`Modal ${modal.classList.contains('show') ? 'OPENED' : 'CLOSED'}`, 'success');
+            if (modal.classList.contains('show')) {
+                updateAutocompleteLists();
+            }
+        }
+
+        // Update Autocomplete Lists
+        function updateAutocompleteLists() {
+            // Cities
+            const citiesList = document.getElementById('citiesList');
+            const citiesList2 = document.getElementById('citiesList2');
+            citiesList.innerHTML = stockData.cities.map(city => `<option value="${city}">`).join('');
+            citiesList2.innerHTML = stockData.cities.map(city => `<option value="${city}">`).join('');
+            
+            // Events
+            const eventsList = document.getElementById('eventsList');
+            eventsList.innerHTML = stockData.events.map(event => `<option value="${event}">`).join('');
+        }
+
+        // Add Movement - WITH DYNAMIC POSITION CREATION
+        function addMovement(event) {
+            event.preventDefault();
+            debugLog('💼 Processing movement...', 'success');
+            
+            const fromLoc = document.getElementById('fromLocation').value.trim();
+            const toLoc = document.getElementById('toLocation').value.trim();
+            const manager = document.getElementById('managerName').value;
+            const pieces = parseInt(document.getElementById('pieces').value);
+            const type = document.getElementById('movementType').value;
+            const eventName = document.getElementById('eventName').value.trim();
+            const date = document.getElementById('movementDate').value;
+
+            debugLog(`From: ${fromLoc} → To: ${toLoc}`);
+            debugLog(`Manager: ${manager}, Pieces: ${pieces}`);
+
+            // Add to autocomplete lists if new
+            if (fromLoc && !stockData.cities.includes(fromLoc)) {
+                stockData.cities.push(fromLoc);
+            }
+            if (toLoc && !stockData.cities.includes(toLoc)) {
+                stockData.cities.push(toLoc);
+            }
+            if (eventName && !stockData.events.includes(eventName)) {
+                stockData.events.push(eventName);
+            }
+
+            // Format date
+            const dateObj = new Date(date);
+            const formatted = dateObj.toLocaleDateString('en-GB').replace(/\//g, '-');
+
+            // Create movement description
+            let action = '';
+            if (type === 'transfer') {
+                action = `Transferred from ${fromLoc} to ${toLoc}`;
+            } else if (type === 'sale') {
+                action = `Sales at ${toLoc}`;
+            } else if (type === 'return') {
+                action = `Returned from ${fromLoc} to ${toLoc}`;
+            } else if (type === 'addition') {
+                action = `Received from ${fromLoc}`;
+            }
+
+            if (eventName) {
+                action += ` (${eventName})`;
+            }
+
+            // SMART POSITION MATCHING:
+            // For returns and sales: Match by manager only (updates their main position)
+            // For additions/transfers to NEW location: Create new position
+            let position;
+            
+            if (type === 'return' || type === 'sale') {
+                // Return/Sale: Find first active position for this manager
+                position = stockData.positions.find(p => p.manager === manager && p.status === 'active');
+            } else {
+                // Addition/Transfer: Try to find position with matching location
+                position = stockData.positions.find(p => 
+                    p.manager === manager && 
+                    (p.location.toLowerCase().includes(toLoc.toLowerCase()) || 
+                     toLoc.toLowerCase().includes(p.location.toLowerCase().split('/')[0].trim().toLowerCase()))
+                );
+            }
+            
+            // If position doesn't exist and it's an addition/transfer, CREATE IT
+            if (!position && (type === 'addition' || type === 'transfer')) {
+                position = {
+                    manager: manager,
+                    location: `${eventName || toLoc} / ${toLoc}`,
+                    stock: 0,
+                    status: 'active',
+                    maxCapacity: 1000,
+                    movements: []
+                };
+                stockData.positions.push(position);
+                debugLog(`✨ NEW POSITION: ${manager} - ${position.location}`, 'success');
+            }
+
+            if (!position) {
+                alert(`❌ Error: No active position found for ${manager}. Please add stock first.`);
+                return;
+            }
+
+            // Add movement
+            position.movements.push({
+                date: formatted,
+                action: action,
+                qty: type === 'sale' || type === 'return' ? -pieces : pieces,
+                type: type
+            });
+
+            // RECALCULATE stock from ALL movements
+            recalculateStock(position);
+            debugLog(`Updated stock: ${position.stock} pcs`);
+
+            // Add to recent activity
+            stockData.recentActivity.unshift({
+                event: eventName || type,
+                manager: manager,
+                impact: `${type === 'sale' || type === 'return' ? '-' : '+'}${pieces} pcs`,
+                isNegative: type === 'sale' || type === 'return'
+            });
+
+            // SAVE TO LOCALSTORAGE
+            saveData();
+            debugLog(`💾 Saved! Stock: ${position.stock} pcs`, 'success');
+
+            // Refresh displays
+            calculateMetrics();
+            populateAllPositions();
+            populateTopStock();
+            populateActivity();
+
+            alert(`✅ Movement logged!\n\n${manager} - ${position.location}\nStock: ${position.stock} pcs`);
+
+            // Reset form and close
+            event.target.reset();
+            toggleEntryForm();
+        }
+
+        // Show Breakdown
+        function showBreakdown(index) {
+            const position = stockData.positions[index];
+            const modal = document.getElementById('breakdownModal');
+            const title = document.getElementById('breakdownTitle');
+            const content = document.getElementById('breakdownContent');
+
+            title.textContent = `${position.manager} - ${position.location.split('/')[0].trim()} Movement Trail`;
+
+            const movementsHTML = `
+                <div style="margin-bottom: 15px; padding: 15px; background: #f0f9ff; border-radius: 8px;">
+                    <div style="font-size: 14px; color: #0369a1; font-weight: 600;">Current Stock: ${position.stock} pcs</div>
+                    <div style="font-size: 12px; color: #0c4a6e; margin-top: 4px;">Status: ${position.status.toUpperCase()}</div>
+                </div>
+
+                <div class="movement-trail">
+                    ${position.movements.map((m, mIndex) => {
+                        let qtyClass = '';
+                        let qtyText = '';
+                        
+                        if (m.type === 'sale' || m.type === 'return') {
+                            qtyClass = 'style="color: #dc2626;"';
+                            qtyText = `${m.qty} pcs`;
+                        } else if (m.type === 'addition' || m.type === 'transfer') {
+                            qtyClass = 'style="color: #059669;"';
+                            qtyText = m.qty > 0 ? `+${m.qty} pcs` : `${m.qty} pcs`;
+                        } else if (m.type === 'note') {
+                            qtyClass = 'style="color: #6b7280;"';
+                            qtyText = 'Note';
+                        } else if (m.type === 'verification') {
+                            qtyClass = 'style="color: #7c3aed; font-weight: 600;"';
+                            qtyText = m.verificationData ? 
+                                `✓ Verified: ${m.verificationData.verified} pcs | Diff: ${m.verificationData.difference > 0 ? '+' : ''}${m.verificationData.difference} pcs` : 
+                                'Verified';
+                        } else {
+                            qtyClass = 'style="color: #4b5563;"';
+                            qtyText = m.qty > 0 ? `${m.qty} pcs` : '';
+                        }
+
+                        const isVerified = m.verified || false;
+                        const borderColor = isVerified ? '#10b981' : (m.type === 'verification' ? '#7c3aed' : '#667eea');
+                        const bgColor = isVerified ? '#d1fae5' : (m.type === 'verification' ? '#f3e8ff' : '#f7fafc');
+
+                        return `
+                            <div class="trail-item" style="background: ${bgColor}; border-left-color: ${borderColor}; position: relative;">
+                                <div class="trail-date">${m.date}</div>
+                                <div class="trail-action">${m.action}</div>
+                                ${qtyText ? `<div class="trail-qty" ${qtyClass}>${qtyText}</div>` : ''}
+                                ${m.verifiedBy ? `<div style="font-size: 11px; color: #6b7280; margin-top: 4px;">By: ${m.verifiedBy}</div>` : ''}
+                                
+                                ${m.type !== 'verification' && m.type !== 'note' ? `
+                                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between;">
+                                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px;">
+                                            <input type="checkbox" 
+                                                   id="verify-${index}-${mIndex}" 
+                                                   ${isVerified ? 'checked disabled' : ''}
+                                                   onchange="toggleMovementVerification(${index}, ${mIndex})"
+                                                   style="cursor: pointer; width: 16px; height: 16px;">
+                                            <span style="color: ${isVerified ? '#059669' : '#6b7280'}; font-weight: ${isVerified ? '600' : '400'};">
+                                                ${isVerified ? '✓ Verified' : 'Mark as Verified'}
+                                            </span>
+                                        </label>
+                                        ${!isVerified ? `
+                                            <button onclick="showMovementVerificationForm(${index}, ${mIndex})" 
+                                                    style="padding: 4px 12px; background: #667eea; color: white; border: none; border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: 600;">
+                                                Verify Details
+                                            </button>
+                                        ` : `
+                                            <span style="font-size: 11px; color: #059669;">
+                                                ${m.verificationInfo ? `Verified by: ${m.verificationInfo.verifiedBy} on ${m.verificationInfo.verifiedDate}` : ''}
+                                            </span>
+                                        `}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+
+            content.innerHTML = movementsHTML;
+            modal.classList.add('show');
+        }
+
+        // Toggle Movement Verification (Quick checkbox)
+        function toggleMovementVerification(positionIndex, movementIndex) {
+            const checkbox = document.getElementById(`verify-${positionIndex}-${movementIndex}`);
+            const position = stockData.positions[positionIndex];
+            const movement = position.movements[movementIndex];
+            
+            if (checkbox.checked) {
+                const verifiedBy = prompt('Verified by (enter your name):');
+                if (!verifiedBy) {
+                    checkbox.checked = false;
+                    return;
+                }
+                
+                const today = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
+                movement.verified = true;
+                movement.verificationInfo = {
+                    verifiedBy: verifiedBy,
+                    verifiedDate: today,
+                    method: 'quick'
+                };
+                
+                // Refresh the breakdown display
+                showBreakdown(positionIndex);
+            }
+        }
+
+        // Show Movement Verification Form
+        function showMovementVerificationForm(positionIndex, movementIndex) {
+            const position = stockData.positions[positionIndex];
+            const movement = position.movements[movementIndex];
+            
+            const formHTML = `
+                <div style="padding: 20px; background: white; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); margin: 15px 0;">
+                    <div style="font-size: 14px; font-weight: 600; color: #2d3748; margin-bottom: 15px;">
+                        Verify Movement: ${movement.action}
+                    </div>
+                    <div style="background: #f0f9ff; padding: 12px; border-radius: 6px; margin-bottom: 15px;">
+                        <div style="font-size: 12px; color: #0369a1;">
+                            <strong>Date:</strong> ${movement.date}<br>
+                            <strong>Quantity:</strong> ${movement.qty > 0 ? '+' : ''}${movement.qty} pcs
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Verified Quantity</label>
+                        <input type="number" class="form-input" id="movementVerifyQty-${positionIndex}-${movementIndex}" 
+                               value="${Math.abs(movement.qty)}" placeholder="Actual quantity">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Verified By</label>
+                        <input type="text" class="form-input" id="movementVerifyBy-${positionIndex}-${movementIndex}" 
+                               placeholder="Your name">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Verification Date</label>
+                        <input type="date" class="form-input" id="movementVerifyDate-${positionIndex}-${movementIndex}" 
+                               value="${new Date().toISOString().split('T')[0]}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Notes</label>
+                        <input type="text" class="form-input" id="movementVerifyNotes-${positionIndex}-${movementIndex}" 
+                               placeholder="Any discrepancies or remarks">
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="submitMovementVerification(${positionIndex}, ${movementIndex})" 
+                                class="submit-btn" style="flex: 1; background: linear-gradient(135deg, #059669 0%, #047857 100%);">
+                            Submit Verification
+                        </button>
+                        <button onclick="showBreakdown(${positionIndex})" 
+                                class="submit-btn" style="flex: 1; background: #6b7280;">
+                            Cancel
+                        </button>
+                    </div>
+                    <div id="movementVerifyResult-${positionIndex}-${movementIndex}" style="margin-top: 15px;"></div>
+                </div>
+            `;
+            
+            // Insert form after the movement item
+            const modal = document.getElementById('breakdownModal');
+            const content = document.getElementById('breakdownContent');
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = content.innerHTML;
+            
+            // Find the movement and insert form after it
+            const trailItems = tempDiv.querySelectorAll('.trail-item');
+            if (trailItems[movementIndex]) {
+                trailItems[movementIndex].insertAdjacentHTML('afterend', formHTML);
+            }
+            
+            content.innerHTML = tempDiv.innerHTML;
+        }
+
+        // Submit Movement Verification
+        function submitMovementVerification(positionIndex, movementIndex) {
+            const position = stockData.positions[positionIndex];
+            const movement = position.movements[movementIndex];
+            
+            const verifiedQty = parseInt(document.getElementById(`movementVerifyQty-${positionIndex}-${movementIndex}`).value);
+            const verifiedBy = document.getElementById(`movementVerifyBy-${positionIndex}-${movementIndex}`).value.trim();
+            const verifiedDate = document.getElementById(`movementVerifyDate-${positionIndex}-${movementIndex}`).value;
+            const notes = document.getElementById(`movementVerifyNotes-${positionIndex}-${movementIndex}`).value.trim();
+            
+            if (!verifiedBy) {
+                alert('Please enter verifier name');
+                return;
+            }
+            
+            const originalQty = Math.abs(movement.qty);
+            const difference = verifiedQty - originalQty;
+            const dateFormatted = new Date(verifiedDate).toLocaleDateString('en-GB').replace(/\//g, '-');
+            
+            // Mark movement as verified
+            movement.verified = true;
+            movement.verificationInfo = {
+                verifiedBy: verifiedBy,
+                verifiedDate: dateFormatted,
+                verifiedQty: verifiedQty,
+                originalQty: originalQty,
+                difference: difference,
+                notes: notes,
+                method: 'detailed'
+            };
+            
+            // If there's a discrepancy, adjust and log
+            if (difference !== 0) {
+                // Adjust position stock
+                const adjustmentQty = movement.qty > 0 ? difference : -difference;
+                position.stock += adjustmentQty;
+                
+                // Add adjustment movement
+                position.movements.splice(movementIndex + 1, 0, {
+                    date: dateFormatted,
+                    action: `Adjustment (Verification ${difference > 0 ? 'Excess' : 'Shortage'} on "${movement.action}")${notes ? ': ' + notes : ''}`,
+                    qty: adjustmentQty,
+                    type: adjustmentQty > 0 ? 'addition' : 'sale',
+                    verifiedBy: verifiedBy,
+                    verified: true,
+                    isAdjustment: true
+                });
+                
+                // Update total stock
+                const total = stockData.positions.reduce((sum, p) => sum + p.stock, 0);
+                document.getElementById('totalStock').textContent = total.toLocaleString();
+            }
+            
+            // Show result
+            const resultDiv = document.getElementById(`movementVerifyResult-${positionIndex}-${movementIndex}`);
+            if (resultDiv) {
+                if (difference === 0) {
+                    resultDiv.innerHTML = `
+                        <div style="padding: 12px; background: #d1fae5; border-radius: 6px; border-left: 3px solid #059669;">
+                            <div style="font-weight: 600; color: #065f46;">✓ Movement Verified - Match Perfect</div>
+                            <div style="font-size: 11px; color: #047857; margin-top: 4px;">
+                                Original: ${originalQty} pcs | Verified: ${verifiedQty} pcs
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div style="padding: 12px; background: #fee2e2; border-radius: 6px; border-left: 3px solid #dc2626;">
+                            <div style="font-weight: 600; color: #991b1b;">⚠ Discrepancy - Stock Adjusted</div>
+                            <div style="font-size: 11px; color: #7f1d1d; margin-top: 4px;">
+                                Original: ${originalQty} pcs | Verified: ${verifiedQty} pcs | 
+                                <strong>${difference > 0 ? 'Excess' : 'Shortage'}: ${Math.abs(difference)} pcs</strong>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            
+            // Refresh displays
+            populateAllPositions();
+            populateTopStock();
+            
+            // Refresh breakdown after 2 seconds
+            setTimeout(() => {
+                showBreakdown(positionIndex);
+            }, 2000);
+        }
+
+        // Close Breakdown
+        function closeBreakdown() {
+            const modal = document.getElementById('breakdownModal');
+            modal.classList.remove('show');
+        }
+
+        // Set default date to today
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('movementDate').value = today;
+        });
+    </script>
+</body>
+</html>
